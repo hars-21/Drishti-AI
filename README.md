@@ -1,73 +1,47 @@
-# React + TypeScript + Vite
+# Drishti AI — Triple-Lock Multimodal Safety Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Vite](https://img.shields.io/badge/Vite-7C3AED?logo=vite&logoColor=white)
+![React](https://img.shields.io/badge/React-0EA5E9?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-2563EB?logo=typescript&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-06B6D4?logo=tailwindcss&logoColor=white)
+![React Router](https://img.shields.io/badge/React_Router-111827?logo=reactrouter&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-0EA5E9)
 
-Currently, two official plugins are available:
+Operational dashboard for infrastructure threat monitoring and decision support. Calm, light theme with nested routing, reusable components, and static data scaffolding ready for live feeds.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Quick start
 
-## React Compiler
+- Install deps: `pnpm install`
+- Run dev: `pnpm run dev`
+- Build: `pnpm run build`
+- Lint: `pnpm run lint`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Routes
 
-## Expanding the ESLint configuration
+- `/` marketing hero
+- `/technology` modal + logic explainer
+- `/dashboard` shell with sidebar/header and nested views:
+  - Overview (stats, risk tiers, recent events)
+  - Alerts
+  - Sensors
+  - Decision Log
+  - System Health
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Features
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Responsive shell (collapsible sidebar on mobile, sticky header, status badge)
+- Tailwind-only styling; no UI/animation libs
+- Reusable pieces: Sidebar, Header, StatCard, StatusBadge, TableRow
+- Mocked data arrays for fast swap to live sources
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Tech stack
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- Vite + React 19 + TypeScript
+- Tailwind CSS (utility-first)
+- React Router nested routes
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Project structure (key)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- `src/App.tsx` — route setup (landing, tech, dashboard nested)
+- `src/pages/dashboard.tsx` — dashboard layout + pages/components
+- `src/index.css` — global theme background and typography
