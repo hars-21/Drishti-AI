@@ -1,27 +1,26 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LandingPage } from "./components/landing/LandingPage";
 import { DashboardLayout } from "./components/dashboard/DashboardLayout";
-import Overview from "./pages/dashboard/Overview";
-import LiveAlerts from "./pages/dashboard/LiveAlerts";
-import IncidentDetails from "./pages/dashboard/IncidentDetails";
-import SensorHealth from "./pages/dashboard/SensorHealth";
-import Simulation from "./pages/dashboard/Simulation";
+import { Dashboard } from "./pages/dashboard/DashboardMain";
+import HardwareHealth from "./pages/dashboard/HardwareHealth";
+import ActionHistoryPage from "./pages/dashboard/ActionHistoryPage";
 
 function App() {
 	return (
 		<Routes>
 			<Route path="/" element={<LandingPage />} />
 			<Route path="/dashboard" element={<DashboardLayout />}>
-				<Route index element={<Navigate to="overview" replace />} />
-				<Route path="overview" element={<Overview />} />
-				<Route path="alerts" element={<LiveAlerts />} />
-				<Route path="incidents" element={<IncidentDetails />} />
-				<Route path="health" element={<SensorHealth />} />
-				<Route path="simulation" element={<Simulation />} />
+				<Route index element={<DashboardWrapper />} />
+				<Route path="hardware" element={<HardwareHealth />} />
+				<Route path="history" element={<ActionHistoryPage />} />
 			</Route>
 			<Route path="*" element={<Navigate to="/" replace />} />
 		</Routes>
 	);
+}
+
+function DashboardWrapper() {
+	return <Dashboard onSelectAlert={() => { }} />;
 }
 
 export default App;

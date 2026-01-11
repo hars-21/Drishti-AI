@@ -37,7 +37,7 @@ export function LandingPage() {
 								ONLINE
 							</span>
 						</div>
-						<Link to="/dashboard/overview">
+						<Link to="/dashboard">
 							<Button
 								size="sm"
 								variant="primary"
