@@ -5,6 +5,7 @@ import { SolutionSection } from "./SolutionSection";
 import { ConsensusSection } from "./ConsensusSection";
 import { KavachSection } from "./KavachSection";
 import { InfrastructureSection } from "./InfrastructureSection";
+import { ImpactSection } from "./ImpactSection";
 import { Footer } from "./Footer";
 import { Button } from "../ui/Button";
 import { Link } from "react-router-dom";
@@ -16,20 +17,20 @@ export function LandingPage() {
 	}, []);
 
 	return (
-		<div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+		<div className="min-h-screen bg-white font-sans text-slate-900">
 			{/* Navbar */}
-			<nav className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
-				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center justify-between">
+			<nav className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-xl border-b border-slate-200 shadow-sm">
+				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
 					<div className="flex items-center space-x-2">
-						<div className="w-5 h-5 bg-blue-700 rounded-sm flex items-center justify-center">
-							<div className="w-1.5 h-1.5 border border-white rounded-full"></div>
+						<div className="w-6 h-6 bg-linear-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+							<div className="w-2 h-2 border-2 border-white rounded-full"></div>
 						</div>
-						<span className="text-sm font-bold text-slate-900 tracking-tight font-mono">
+						<span className="text-base font-bold text-slate-900 tracking-tight font-mono">
 							DRISHTI-AI
 						</span>
 					</div>
 					<div className="flex items-center space-x-4">
-						<div className="hidden md:flex text-[10px] font-mono text-slate-400 gap-4">
+						<div className="hidden md:flex text-[10px] font-mono text-slate-500 gap-4">
 							<span>SEC: ENCRYPTED</span>
 							<span className="flex items-center">
 								<div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5 animate-pulse"></div>
@@ -40,10 +41,10 @@ export function LandingPage() {
 							<Button
 								size="sm"
 								variant="primary"
-								className="h-7 text-[10px] font-bold uppercase tracking-wider px-3"
+								className="h-8 text-xs font-bold uppercase tracking-wider px-4 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 shadow-lg shadow-blue-500/20"
 							>
 								Dashboard
-								<LayoutDashboard className="w-3 h-3 ml-1.5" />
+								<LayoutDashboard className="w-3.5 h-3.5 ml-2" />
 							</Button>
 						</Link>
 					</div>
@@ -57,6 +58,7 @@ export function LandingPage() {
 				<ConsensusSection />
 				<KavachSection />
 				<InfrastructureSection />
+				<ImpactSection />
 			</main>
 
 			<Footer />

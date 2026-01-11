@@ -1,63 +1,145 @@
 import { useState, useEffect } from "react";
-import { Menu, Bell, Wifi } from "lucide-react";
+import { Menu, ShieldCheck, Clock, Activity, AlertTriangle, Cpu } from "lucide-react";
+import { getStats } from "../../services/api";
+import type { SystemStats } from "../../services/api/types";
 
 export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
 	const [time, setTime] = useState(new Date());
+	const [stats, setStats] = useState<SystemStats | null>(null);
+	const [isLoading, setIsLoading] = useState(true);
 
+	// Update time every second
 	useEffect(() => {
 		const timer = setInterval(() => setTime(new Date()), 1000);
 		return () => clearInterval(timer);
 	}, []);
 
+	// Fetch stats with 30s auto-refresh
+	useEffect(() => {
+		async function fetchStats() {
+			try {
+				const data = await getStats();
+				setStats(data);
+			} catch {
+				// Silently fail - will show skeleton
+			} finally {
+				setIsLoading(false);
+			}
+		}
+
+		fetchStats();
+		const interval = setInterval(fetchStats, 30000);
+		return () => clearInterval(interval);
+	}, []);
+
 	return (
-		<header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sticky top-0 z-20">
-			<div className="flex items-center">
+		<header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20 shadow-sm">
+			{/* Left: Menu Button */}
+			<div className="flex items-center gap-4">
 				<button
 					onClick={onMenuClick}
-					className="p-2 -ml-2 mr-2 text-slate-500 hover:bg-slate-100 rounded-lg lg:hidden"
+					className="p-2 -ml-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors lg:hidden"
 				>
-					<Menu className="w-6 h-6" />
+					<Menu className="w-5 h-5" />
 				</button>
 
-				<div className="hidden md:flex items-center text-sm font-medium text-slate-500">
-					<span className="mr-3">System Status:</span>
-					<div className="flex items-center text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-200">
-						<div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
-						OPERATIONAL
-					</div>
-				</div>
-			</div>
-
-			<div className="flex items-center space-x-4">
-				{/* Kavach Indicator */}
-				<div className="hidden md:flex items-center px-3 py-1.5 bg-slate-900 rounded-md text-white shadow-sm ring-1 ring-slate-900/5">
-					<Wifi className="w-4 h-4 text-blue-400 mr-2" />
-					<span className="text-xs font-bold tracking-wider">KAVACH 4.0 CONNECTED</span>
+				{/* System Health */}
+				<div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200">
+					<div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+					<span className="text-[10px] font-mono uppercase tracking-wider text-emerald-700 font-bold">
+						Operational
+					</span>
 				</div>
 
-				<div className="h-8 w-px bg-slate-200 mx-2 hidden md:block"></div>
+				{/* Stats from API */}
+				<div className="hidden md:flex items-center gap-3">
+					{/* Active Hardware */}
+					<StatBadge
+						icon={<Cpu className="w-3 h-3" />}
+						label="Active"
+						value={stats?.activeHardware}
+						isLoading={isLoading}
+						variant="blue"
+					/>
 
-				{/* Time */}
-				<div className="hidden md:block text-right">
-					<div className="text-sm font-bold text-slate-900 leading-none">
-						{time.toLocaleTimeString([], { hour12: false })}
-					</div>
-					<div className="text-xs text-slate-500 font-medium">{time.toLocaleDateString()}</div>
-				</div>
+					{/* Faulty Hardware */}
+					<StatBadge
+						icon={<Activity className="w-3 h-3" />}
+						label="Faulty"
+						value={stats?.faultyHardware}
+						isLoading={isLoading}
+						variant={stats?.faultyHardware && stats.faultyHardware > 0 ? "amber" : "slate"}
+					/>
 
-				<button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
-					<Bell className="w-5 h-5" />
-					<span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
-				</button>
-
-				<div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 overflow-hidden">
-					<img
-						src="https://api.dicebear.com/7.x/avataaars/svg?seed=Officer"
-						alt="User"
-						className="w-full h-full object-cover"
+					{/* Total Alerts */}
+					<StatBadge
+						icon={<AlertTriangle className="w-3 h-3" />}
+						label="Alerts"
+						value={stats?.totalAlerts}
+						isLoading={isLoading}
+						variant={stats?.totalAlerts && stats.totalAlerts > 0 ? "red" : "slate"}
 					/>
 				</div>
 			</div>
+
+			{/* Right: Kavach + Time */}
+			<div className="flex items-center gap-4">
+				{/* Kavach Link Status */}
+				<div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-50 border border-blue-200">
+					<ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+					<span className="text-[10px] font-mono uppercase tracking-wider text-blue-700 font-bold">
+						Kavach linked
+					</span>
+				</div>
+
+				{/* Divider */}
+				<div className="hidden md:block h-4 w-px bg-slate-300"></div>
+
+				{/* Time */}
+				<div className="flex items-center gap-2">
+					<Clock className="w-3.5 h-3.5 text-slate-400 hidden md:block" />
+					<div className="text-right">
+						<div className="text-xs font-mono text-slate-600 tabular-nums">
+							{time.toLocaleTimeString([], { hour12: false })}
+						</div>
+					</div>
+				</div>
+			</div>
 		</header>
+	);
+}
+
+// Stat Badge Component
+function StatBadge({
+	icon,
+	label,
+	value,
+	isLoading,
+	variant = "slate",
+}: {
+	icon: React.ReactNode;
+	label: string;
+	value?: number;
+	isLoading: boolean;
+	variant: "blue" | "amber" | "red" | "slate";
+}) {
+	const variants = {
+		blue: "bg-blue-50 border-blue-200 text-blue-700",
+		amber: "bg-amber-50 border-amber-200 text-amber-700",
+		red: "bg-red-50 border-red-200 text-red-700",
+		slate: "bg-slate-50 border-slate-200 text-slate-600",
+	};
+
+	return (
+		<div className={`flex items-center gap-1.5 px-2 py-1 rounded-md border ${variants[variant]}`}>
+			{icon}
+			{isLoading ? (
+				<div className="w-8 h-3 bg-slate-200 rounded animate-pulse" />
+			) : (
+				<span className="text-[10px] font-mono uppercase tracking-wider font-bold">
+					{value ?? "-"} {label}
+				</span>
+			)}
+		</div>
 	);
 }
