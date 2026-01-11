@@ -1,423 +1,356 @@
-import React from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import {
+	Bar,
+	BarChart,
+	CartesianGrid,
+	Legend,
+	Line,
+	LineChart,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from "recharts";
+import AlertCard from "../components/AlertCard";
+import IntentGauge from "../components/IntentGauge";
+import LiveStream from "../components/LiveStream";
 
-type NavItem = {
-	label: string;
-	path: string;
-};
+type Status = "Nominal" | "Degraded" | "Tampering" | "Review" | "Cleared";
 
-type Stat = {
-	label: string;
-	value: string;
-	sub?: string;
-};
-
-type EventRow = {
-	time: string;
-	location: string;
-	source: string;
-	risk: "Informational" | "Advisory" | "Emergency";
-	action: string;
-};
-
-type Alert = {
-	time: string;
-	location: string;
-	layers: string[];
-	risk: "Informational" | "Advisory" | "Emergency";
-};
-
-type Sensor = {
-	id: string;
-	type: string;
-	status: "Online" | "Offline";
-	heartbeat: string;
-};
-
-type DecisionItem = {
-	stage: string;
-	detail: string;
-	status: string;
-};
-
-const navItems: NavItem[] = [
-	{ label: "Overview", path: "/dashboard" },
-	{ label: "Live Alerts", path: "/dashboard/alerts" },
-	{ label: "Sensors", path: "/dashboard/sensors" },
-	{ label: "Decision Log", path: "/dashboard/logs" },
-	{ label: "System Health", path: "/dashboard/health" },
+const navItems = [
+	{ label: "Command", badge: "LIVE" },
+	{ label: "Alerts", badge: "3" },
+	{ label: "Systems", badge: "OK" },
+	{ label: "Reports", badge: "" },
 ];
 
-const statusPalette = {
-	Operational: "bg-emerald-100 text-emerald-800 border border-emerald-200",
-	Degraded: "bg-amber-100 text-amber-900 border border-amber-200",
-	Emergency: "bg-rose-100 text-rose-900 border border-rose-200",
-};
+const opsMetrics = [
+	{
+		label: "Corridors Under Watch",
+		value: "12",
+		detail: "Eastern, South-Eastern",
+		tone: "text-emerald-300",
+	},
+	{ label: "Active Alerts", value: "03", detail: "2 advisory / 1 review", tone: "text-amber-300" },
+	{ label: "Median Response", value: "42s", detail: "Last 60 mins", tone: "text-sky-200" },
+	{ label: "Kavach Link", value: "Nominal", detail: "Encrypted · SIL-4", tone: "text-emerald-300" },
+];
 
-const StatusBadge = ({ label }: { label: keyof typeof statusPalette }) => (
-	<span
-		className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${statusPalette[label]}`}
-	>
-		<span className="h-2.5 w-2.5 rounded-full bg-current opacity-80" />
-		{label}
-	</span>
-);
+const alertQueue: { id: string; status: Status; note: string; corridor: string }[] = [
+	{
+		id: "KGP-YD-21",
+		status: "Tampering",
+		note: "Thermal signature matched with acoustic spike",
+		corridor: "Kharagpur Yard",
+	},
+	{
+		id: "HWH-OC-04",
+		status: "Review",
+		note: "Single-source vibration; awaiting second modality",
+		corridor: "Howrah Outer",
+	},
+	{
+		id: "BWN-PL-12",
+		status: "Cleared",
+		note: "Maintenance crew verified on site",
+		corridor: "Bardhaman Loop",
+	},
+];
 
-const Sidebar = ({ open, onClose }: { open: boolean; onClose: () => void }) => (
-	<aside
-		className={`fixed inset-y-0 left-0 w-64 bg-white border-r border-slate-200 shadow-sm z-30 transform transition-transform duration-200 lg:translate-x-0 ${
-			open ? "translate-x-0" : "-translate-x-full"
-		}`}
-	>
-		<div className="h-16 flex items-center px-5 border-b border-slate-200">
-			<span className="text-lg font-semibold tracking-tight text-slate-900">Drishti AI</span>
-		</div>
-		<nav className="py-4">
-			{navItems.map((item) => (
-				<SidebarLink key={item.path} to={item.path} label={item.label} onSelect={onClose} />
-			))}
-		</nav>
-	</aside>
-);
+const systemChecks: { name: string; state: Status; detail: string }[] = [
+	{ name: "Acoustic DAS", state: "Nominal", detail: "Fiber span 41 km" },
+	{ name: "Thermal Layer", state: "Nominal", detail: "12 cameras synced" },
+	{ name: "Geometry Layer", state: "Degraded", detail: "Stereo pair 3 recalibrating" },
+	{ name: "Backhaul", state: "Nominal", detail: "Redundant MPLS" },
+	{ name: "Storage", state: "Nominal", detail: "14-day retention" },
+	{ name: "Audit Trail", state: "Nominal", detail: "Immutable" },
+];
 
-const SidebarLink = ({
-	to,
-	label,
-	onSelect,
-}: {
-	to: string;
-	label: string;
-	onSelect: () => void;
-}) => {
-	const location = useLocation();
-	const active =
-		to === "/dashboard"
-			? location.pathname === to
-			: location.pathname === to || location.pathname.startsWith(`${to}`);
+const threatTrend = [
+	{ time: "07:00", tampering: 2, advisories: 5 },
+	{ time: "07:30", tampering: 3, advisories: 4 },
+	{ time: "08:00", tampering: 4, advisories: 6 },
+	{ time: "08:30", tampering: 2, advisories: 5 },
+	{ time: "09:00", tampering: 3, advisories: 3 },
+	{ time: "09:30", tampering: 5, advisories: 4 },
+];
+
+const corridorLoad = [
+	{ name: "KGP – HWH", trains: 18, alerts: 3 },
+	{ name: "BWN – ASN", trains: 11, alerts: 1 },
+	{ name: "KGP – BHC", trains: 9, alerts: 2 },
+	{ name: "HWH – KPD", trains: 7, alerts: 0 },
+];
+
+const responseLog = [
+	{ time: "09:38", action: "RPF patrol dispatched", ref: "KGP-YD-21" },
+	{ time: "09:35", action: "Thermal sweep requested", ref: "HWH-OC-04" },
+	{ time: "09:30", action: "Kavach link check complete", ref: "SYSTEM" },
+	{ time: "09:24", action: "Maintenance crew verified", ref: "BWN-PL-12" },
+];
+
+const StatusPill = ({ state }: { state: Status }) => {
+	const palette: Record<string, string> = {
+		Nominal: "bg-emerald-900/40 text-emerald-100 border border-emerald-800",
+		Degraded: "bg-amber-900/30 text-amber-100 border border-amber-800",
+		Tampering: "bg-rose-900/30 text-rose-100 border border-rose-800",
+		Review: "bg-sky-900/30 text-sky-100 border border-sky-800",
+		Cleared: "bg-slate-800 text-slate-100 border border-slate-700",
+	};
 	return (
-		<Link
-			to={to}
-			onClick={onSelect}
-			className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
-				active
-					? "text-slate-900 bg-slate-100 border-l-4 border-slate-900"
-					: "text-slate-600 hover:text-slate-900"
-			}`}
-		>
-			<span className="text-base">{label}</span>
-		</Link>
+		<span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${palette[state]}`}>
+			{state}
+		</span>
 	);
 };
 
-const Header = ({ title, onToggleSidebar }: { title: string; onToggleSidebar: () => void }) => (
-	<header className="sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-slate-200">
-		<div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-			<div className="flex items-center gap-3">
-				<button
-					onClick={onToggleSidebar}
-					className="lg:hidden h-9 w-9 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-700"
-					aria-label="Toggle navigation"
-				>
-					<span className="sr-only">Toggle sidebar</span>☰
-				</button>
-				<h1 className="text-lg sm:text-xl font-semibold text-slate-900">{title}</h1>
-			</div>
-			<div className="flex items-center gap-3">
-				<StatusBadge label="Operational" />
-				<div className="h-10 w-10 rounded-full bg-slate-200" />
-			</div>
-		</div>
-	</header>
-);
-
-const StatCard = ({ label, value, sub }: Stat) => (
-	<div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-		<p className="text-sm text-slate-500">{label}</p>
-		<div className="mt-2 text-2xl font-semibold text-slate-900">{value}</div>
-		{sub ? <p className="mt-1 text-sm text-slate-500">{sub}</p> : null}
+const SummaryCard = ({
+	label,
+	value,
+	detail,
+	tone,
+}: {
+	label: string;
+	value: string;
+	detail: string;
+	tone: string;
+}) => (
+	<div className="rounded-xl border border-slate-800 bg-[#0f1a2d] px-4 py-3 shadow-lg shadow-black/20">
+		<p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">{label}</p>
+		<div className={`text-2xl font-semibold mt-1 ${tone}`}>{value}</div>
+		<p className="text-xs text-slate-400 mt-1">{detail}</p>
 	</div>
 );
 
-const TableRow = ({ row }: { row: EventRow }) => (
-	<tr className="even:bg-slate-50">
-		<td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{row.time}</td>
-		<td className="px-4 py-3 text-sm text-slate-700">{row.location}</td>
-		<td className="px-4 py-3 text-sm text-slate-700">{row.source}</td>
-		<td className="px-4 py-3">
-			<span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${badgeTone(row.risk)}`}>
-				{row.risk}
-			</span>
-		</td>
-		<td className="px-4 py-3 text-sm text-slate-700">{row.action}</td>
-	</tr>
+const SectionTitle = ({ title, meta }: { title: string; meta?: string }) => (
+	<div className="flex items-center justify-between">
+		<h2 className="text-sm font-semibold text-slate-100 tracking-tight">{title}</h2>
+		{meta ? <span className="text-[11px] text-slate-400">{meta}</span> : null}
+	</div>
 );
 
-const badgeTone = (risk: "Informational" | "Advisory" | "Emergency") => {
-	if (risk === "Emergency") return "bg-rose-100 text-rose-900";
-	if (risk === "Advisory") return "bg-amber-100 text-amber-900";
-	return "bg-blue-100 text-blue-900";
-};
-
-const OverviewPage = () => {
-	const stats: Stat[] = [
-		{ label: "Active Alerts", value: "07", sub: "Last 30 min" },
-		{ label: "Trains Monitored", value: "142", sub: "Corridor KGP - HWH" },
-		{ label: "Sensors Online", value: "286 / 294", sub: "DAS / IR / LiDAR" },
-		{ label: "Avg Response Time", value: "42 ms", sub: "Edge to Kavach" },
-	];
-
-	const riskTiers = [
-		{ label: "Informational", value: 18, tone: "bg-blue-50 text-blue-900" },
-		{ label: "Advisory", value: 6, tone: "bg-amber-50 text-amber-900" },
-		{ label: "Emergency", value: 1, tone: "bg-rose-50 text-rose-900" },
-	];
-
-	const events: EventRow[] = [
-		{
-			time: "08:44:12",
-			location: "PKR-12.4N",
-			source: "Acoustic",
-			risk: "Advisory",
-			action: "Operator review",
-		},
-		{
-			time: "08:40:03",
-			location: "SNP-08.1E",
-			source: "Thermal",
-			risk: "Informational",
-			action: "Logged",
-		},
-		{
-			time: "08:33:55",
-			location: "KVD-04.9S",
-			source: "Geometry",
-			risk: "Emergency",
-			action: "Kavach dispatch",
-		},
-		{
-			time: "08:29:17",
-			location: "BDR-21.0W",
-			source: "Acoustic",
-			risk: "Informational",
-			action: "Trend analysis",
-		},
-	];
-
-	return (
-		<div className="space-y-8">
-			<section>
-				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-					{stats.map((stat) => (
-						<StatCard key={stat.label} label={stat.label} value={stat.value} sub={stat.sub} />
-					))}
+const DashboardPage = () => (
+	<div className="min-h-screen bg-[#0b1220] text-slate-50">
+		<header className="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-[#0c182b]">
+			<div className="flex items-center gap-3">
+				<div className="w-9 h-9 rounded border border-slate-700 bg-slate-900/60 flex items-center justify-center text-xs font-semibold text-slate-100">
+					DA
 				</div>
-			</section>
-			<section className="grid gap-4 sm:grid-cols-3">
-				{riskTiers.map((tier) => (
-					<div
-						key={tier.label}
-						className={`rounded-xl border border-slate-200 p-4 shadow-sm ${tier.tone}`}
-					>
-						<div className="text-sm font-medium text-slate-700">{tier.label}</div>
-						<div className="text-2xl font-semibold mt-1">{tier.value}</div>
-					</div>
-				))}
-			</section>
-			<section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-				<div className="px-4 sm:px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-					<h3 className="text-base font-semibold text-slate-900">Recent Events</h3>
-					<span className="text-sm text-slate-500">Last 60 minutes</span>
+				<div>
+					<p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+						Railway Safety Command
+					</p>
+					<p className="text-lg font-semibold">Drishti AI</p>
 				</div>
-				<div className="overflow-x-auto">
-					<table className="min-w-full text-left">
-						<thead className="text-xs uppercase text-slate-500">
-							<tr>
-								<th className="px-4 py-3">Time</th>
-								<th className="px-4 py-3">Location</th>
-								<th className="px-4 py-3">Trigger Source</th>
-								<th className="px-4 py-3">Risk</th>
-								<th className="px-4 py-3">Action Taken</th>
-							</tr>
-						</thead>
-						<tbody>
-							{events.map((row) => (
-								<TableRow key={`${row.time}-${row.location}`} row={row} />
-							))}
-						</tbody>
-					</table>
-				</div>
-			</section>
-		</div>
-	);
-};
-
-export const AlertsPage = () => {
-	const alerts: Alert[] = [
-		{ time: "08:44", location: "PKR-12.4N", layers: ["Acoustic", "Thermal"], risk: "Advisory" },
-		{ time: "08:33", location: "KVD-04.9S", layers: ["Geometry", "Thermal"], risk: "Emergency" },
-		{ time: "08:26", location: "BDR-21.0W", layers: ["Acoustic"], risk: "Informational" },
-	];
-
-	return (
-		<div className="space-y-4">
-			{alerts.map((alert) => (
-				<div
-					key={`${alert.time}-${alert.location}`}
-					className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-				>
-					<div className="flex items-center gap-3">
-						<div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center text-sm font-semibold text-slate-700">
-							{alert.time}
-						</div>
-						<div>
-							<p className="text-sm font-semibold text-slate-900">{alert.location}</p>
-							<div className="flex flex-wrap gap-2 mt-1 text-xs text-slate-600">
-								{alert.layers.map((layer) => (
-									<span key={layer} className="px-2 py-1 rounded-full bg-slate-100">
-										{layer}
-									</span>
-								))}
-							</div>
-						</div>
-					</div>
-					<span className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeTone(alert.risk)}`}>
-						{alert.risk}
-					</span>
-				</div>
-			))}
-		</div>
-	);
-};
-
-export const SensorsPage = () => {
-	const sensors: Sensor[] = [
-		{ id: "DAS-014", type: "DAS", status: "Online", heartbeat: "08:45:02" },
-		{ id: "IR-207", type: "IR", status: "Online", heartbeat: "08:44:51" },
-		{ id: "LID-031", type: "LiDAR", status: "Offline", heartbeat: "08:40:10" },
-		{ id: "IR-209", type: "IR", status: "Online", heartbeat: "08:45:05" },
-		{ id: "DAS-017", type: "DAS", status: "Online", heartbeat: "08:44:58" },
-		{ id: "LID-042", type: "LiDAR", status: "Online", heartbeat: "08:44:46" },
-	];
-
-	return (
-		<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			{sensors.map((sensor) => (
-				<div key={sensor.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-					<div className="flex items-center justify-between">
-						<p className="text-sm font-semibold text-slate-900">{sensor.id}</p>
-						<span className="text-xs text-slate-500">{sensor.type}</span>
-					</div>
-					<div className="mt-3 flex items-center gap-2 text-sm text-slate-700">
-						<span
-							className={`h-2.5 w-2.5 rounded-full ${
-								sensor.status === "Online" ? "bg-emerald-500" : "bg-slate-400"
-							}`}
-						/>
-						{sensor.status}
-					</div>
-					<p className="mt-2 text-xs text-slate-500">Last heartbeat: {sensor.heartbeat}</p>
-				</div>
-			))}
-		</div>
-	);
-};
-
-export const LogsPage = () => {
-	const decisions: DecisionItem[] = [
-		{ stage: "Detection", detail: "DAS spike localized to PKR-12.4N", status: "Acoustic" },
-		{ stage: "Verification", detail: "Thermal human signature confirmed", status: "Thermal" },
-		{
-			stage: "Decision",
-			detail: "Consensus achieved; advisory escalated",
-			status: "Consensus Achieved",
-		},
-	];
-
-	return (
-		<div className="space-y-4">
-			{decisions.map((item, idx) => (
-				<div key={item.stage} className="flex gap-3">
-					<div className="flex flex-col items-center">
-						<div className="h-3 w-3 rounded-full bg-slate-900" />
-						{idx < decisions.length - 1 ? <div className="h-full w-px bg-slate-200" /> : null}
-					</div>
-					<div className="flex-1 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-						<div className="flex items-center justify-between">
-							<p className="text-sm font-semibold text-slate-900">{item.stage}</p>
-							<span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-700">
-								{item.status}
-							</span>
-						</div>
-						<p className="mt-2 text-sm text-slate-700">{item.detail}</p>
-					</div>
-				</div>
-			))}
-		</div>
-	);
-};
-
-export const HealthPage = () => {
-	const checklist = [
-		{ label: "Kavach Link", state: "Connected" },
-		{ label: "Fiber DAS", state: "Active" },
-		{ label: "AI Models", state: "Loaded" },
-		{ label: "Network Latency", state: "Normal" },
-	];
-
-	return (
-		<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-			{checklist.map((item) => (
-				<div
-					key={item.label}
-					className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex items-center justify-between"
-				>
-					<div>
-						<p className="text-sm font-semibold text-slate-900">{item.label}</p>
-						<p className="text-xs text-slate-500">Status</p>
-					</div>
-					<span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
-						{item.state}
-					</span>
-				</div>
-			))}
-		</div>
-	);
-};
-
-const DashboardLayout = () => {
-	const location = useLocation();
-	const [sidebarOpen, setSidebarOpen] = React.useState(false);
-	const pageTitle = navItems.reduce(
-		(current, item) => {
-			const matches =
-				location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
-			return matches && item.path.length > current.path.length
-				? { path: item.path, label: item.label }
-				: current;
-		},
-		{ path: "", label: "Dashboard" }
-	).label;
-
-	return (
-		<div className="min-h-screen bg-slate-50 text-slate-900">
-			<Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-			<div className="lg:pl-64">
-				<Header title={pageTitle} onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
-				<main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-					<Outlet />
-				</main>
 			</div>
-			{sidebarOpen ? (
-				<button
-					type="button"
-					onClick={() => setSidebarOpen(false)}
-					className="fixed inset-0 bg-black/30 backdrop-blur-sm z-20 lg:hidden"
-					aria-label="Close sidebar overlay"
-				/>
-			) : null}
-		</div>
-	);
-};
+			<div className="flex items-center gap-6 text-sm text-slate-200">
+				<div className="flex flex-col items-end">
+					<span className="font-semibold">Eastern Zone</span>
+					<span className="text-xs text-slate-400">KGP · HWH · BWN</span>
+				</div>
+				<div className="h-8 w-px bg-slate-800" />
+				<div className="flex flex-col items-end">
+					<span className="font-semibold">UTC 09:40</span>
+					<span className="text-xs text-emerald-300">Audit Trail Enabled</span>
+				</div>
+			</div>
+		</header>
+		<div className="flex">
+			<aside className="hidden lg:block w-60 bg-[#0d1524] border-r border-slate-800 min-h-[calc(100vh-4rem)]">
+				<nav className="py-4 space-y-1">
+					{navItems.map((item) => (
+						<div
+							key={item.label}
+							className="flex items-center justify-between px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-800/50 transition-colors"
+						>
+							<span>{item.label}</span>
+							{item.badge ? (
+								<span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-200 border border-slate-700">
+									{item.badge}
+								</span>
+							) : null}
+						</div>
+					))}
+				</nav>
+				<div className="border-t border-slate-800 px-5 py-4 text-[11px] text-slate-400 space-y-2">
+					<p className="font-semibold text-slate-200">Compliance</p>
+					<p>Audit logging active</p>
+					<p>TLS 1.3 · HSTS</p>
+				</div>
+			</aside>
+			<main className="flex-1 p-6 space-y-6">
+				<section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+					{opsMetrics.map((metric) => (
+						<SummaryCard key={metric.label} {...metric} />
+					))}
+				</section>
 
-export default DashboardLayout;
-export { OverviewPage };
+				<section className="grid gap-6 xl:grid-cols-3">
+					<div className="xl:col-span-2 rounded-xl border border-slate-800 bg-[#0f1a2d] shadow-lg shadow-black/20">
+						<div className="flex items-center justify-between px-5 py-3 border-b border-slate-800">
+							<h2 className="text-sm font-semibold text-slate-100">Live CCTV Feed</h2>
+							<span className="text-[11px] text-slate-400">Channel 04 · Corridor KGP</span>
+						</div>
+						<div className="p-4">
+							<LiveStream src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="CCTV · KGP Yard" />
+						</div>
+					</div>
+					<div className="rounded-xl border border-slate-800 bg-[#0f1a2d] shadow-lg shadow-black/20 p-5 flex flex-col gap-4">
+						<IntentGauge value={72} />
+						<div className="text-xs text-slate-300 space-y-1">
+							<p className="font-semibold text-slate-100">Tampering Risk · Live</p>
+							<p>Consensus weighted: Acoustic 0.42 · Thermal 0.38 · Geometry 0.20</p>
+						</div>
+					</div>
+				</section>
+
+				<section className="grid gap-6 lg:grid-cols-2">
+					<div className="rounded-xl border border-slate-800 bg-[#0f1a2d] shadow-lg shadow-black/20 p-5 space-y-4">
+						<SectionTitle title="Threat & Advisory Trend" meta="Last 3 hours" />
+						<div className="h-64">
+							<ResponsiveContainer width="100%" height="100%">
+								<LineChart data={threatTrend}>
+									<CartesianGrid stroke="rgba(148,163,184,0.18)" strokeDasharray="3 3" />
+									<XAxis dataKey="time" stroke="#94a3b8" tick={{ fontSize: 12 }} />
+									<YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} allowDecimals={false} />
+									<Tooltip
+										contentStyle={{
+											background: "#0f172a",
+											border: "1px solid #1e293b",
+											color: "#e2e8f0",
+										}}
+									/>
+									<Legend wrapperStyle={{ color: "#e2e8f0" }} />
+									<Line
+										type="monotone"
+										dataKey="tampering"
+										stroke="#f43f5e"
+										strokeWidth={2}
+										dot={false}
+										name="Tampering"
+									/>
+									<Line
+										type="monotone"
+										dataKey="advisories"
+										stroke="#38bdf8"
+										strokeWidth={2}
+										dot={false}
+										name="Advisories"
+									/>
+								</LineChart>
+							</ResponsiveContainer>
+						</div>
+					</div>
+					<div className="rounded-xl border border-slate-800 bg-[#0f1a2d] shadow-lg shadow-black/20 p-5 space-y-4">
+						<SectionTitle title="Corridor Load" meta="Trains vs Alerts" />
+						<div className="h-64">
+							<ResponsiveContainer width="100%" height="100%">
+								<BarChart data={corridorLoad}>
+									<CartesianGrid stroke="rgba(148,163,184,0.18)" strokeDasharray="3 3" />
+									<XAxis
+										dataKey="name"
+										stroke="#94a3b8"
+										tick={{ fontSize: 11 }}
+										angle={-10}
+										height={50}
+									/>
+									<YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} allowDecimals={false} />
+									<Tooltip
+										contentStyle={{
+											background: "#0f172a",
+											border: "1px solid #1e293b",
+											color: "#e2e8f0",
+										}}
+									/>
+									<Legend wrapperStyle={{ color: "#e2e8f0" }} />
+									<Bar dataKey="trains" name="Trains" fill="#38bdf8" radius={[3, 3, 0, 0]} />
+									<Bar dataKey="alerts" name="Alerts" fill="#f43f5e" radius={[3, 3, 0, 0]} />
+								</BarChart>
+							</ResponsiveContainer>
+						</div>
+					</div>
+				</section>
+
+				<section className="grid gap-6 xl:grid-cols-3">
+					<div className="rounded-xl border border-slate-800 bg-[#0f1a2d] shadow-lg shadow-black/20 p-5 space-y-4">
+						<SectionTitle title="Alert Queue" meta="Sorted by severity" />
+						<div className="space-y-3">
+							{alertQueue.map((alert) => (
+								<div
+									key={alert.id}
+									className="rounded-lg border border-slate-800 bg-[#0b1324] px-3 py-3 flex items-center justify-between"
+								>
+									<div>
+										<p className="text-sm font-semibold text-slate-100">{alert.id}</p>
+										<p className="text-xs text-slate-400">{alert.corridor}</p>
+										<p className="text-[11px] text-slate-400 mt-1">{alert.note}</p>
+									</div>
+									<StatusPill state={alert.status} />
+								</div>
+							))}
+						</div>
+					</div>
+					<div className="xl:col-span-2 rounded-xl border border-slate-800 bg-[#0f1a2d] shadow-lg shadow-black/20 p-5 space-y-4">
+						<SectionTitle title="System Health" meta="Automated polling · 60s" />
+						<div className="grid gap-3 md:grid-cols-2">
+							{systemChecks.map((check) => (
+								<div
+									key={check.name}
+									className="rounded-lg border border-slate-800 bg-[#0b1324] px-3 py-3 flex items-center justify-between"
+								>
+									<div>
+										<p className="text-sm font-semibold text-slate-100">{check.name}</p>
+										<p className="text-[11px] text-slate-400">{check.detail}</p>
+									</div>
+									<StatusPill state={check.state} />
+								</div>
+							))}
+						</div>
+					</div>
+				</section>
+
+				<section className="grid gap-6 lg:grid-cols-3">
+					<div className="rounded-xl border border-slate-800 bg-[#0f1a2d] shadow-lg shadow-black/20 p-5 space-y-4">
+						<SectionTitle title="High Priority Alerts" meta="Ready for dispatch" />
+						<div className="grid gap-3">
+							<AlertCard
+								riskLevel="HIGH"
+								intentScore={92}
+								timestamp="09:38 UTC"
+								reasons={[
+									"Thermal mass detected at km 211",
+									"DAS frequency match to hammering",
+									"Geometry layer reports ballast disturbance",
+								]}
+							/>
+							<AlertCard
+								riskLevel="MEDIUM"
+								intentScore={71}
+								timestamp="09:35 UTC"
+								reasons={["Single acoustic spike", "Awaiting thermal corroboration"]}
+							/>
+						</div>
+					</div>
+					<div className="lg:col-span-2 rounded-xl border border-slate-800 bg-[#0f1a2d] shadow-lg shadow-black/20 p-5 space-y-4">
+						<SectionTitle title="Response Log" meta="Operator actions" />
+						<ul className="space-y-2 text-sm text-slate-200">
+							{responseLog.map((entry) => (
+								<li
+									key={entry.ref}
+									className="flex items-center justify-between rounded-lg border border-slate-800 bg-[#0b1324] px-3 py-2"
+								>
+									<div>
+										<p className="font-semibold text-slate-100">{entry.action}</p>
+										<p className="text-[11px] text-slate-400">Ref: {entry.ref}</p>
+									</div>
+									<span className="text-[11px] text-slate-400">{entry.time}</span>
+								</li>
+							))}
+						</ul>
+					</div>
+				</section>
+			</main>
+		</div>
+	</div>
+);
+
+export default DashboardPage;
