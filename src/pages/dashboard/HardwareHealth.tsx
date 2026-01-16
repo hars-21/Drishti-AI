@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Hardware, HardwareStatus } from "../../types";
 import { searchHardware } from "../../services/api";
+import { MapPin } from "lucide-react";
 
 const mockHardware: Hardware[] = [
 	{ id: "HW-001", type: "OFC_NODE", coordinates: { lat: 28.61, lng: 77.2 }, status: "active" },
@@ -217,8 +218,8 @@ export function HardwareHealth() {
 								<div className="text-xs font-bold text-slate-500 uppercase">
 									{hw.type.replace("_", " ")}
 								</div>
-								<div className="text-sm text-blue-600 font-semibold font-mono">
-									📍 {hw.coordinates.lat.toFixed(4)}, {hw.coordinates.lng.toFixed(4)}
+								<div className="text-sm text-blue-600 font-semibold font-mono flex items-center gap-1">
+									<MapPin /> {hw.coordinates.lat.toFixed(4)}, {hw.coordinates.lng.toFixed(4)}
 								</div>
 							</div>
 						</div>

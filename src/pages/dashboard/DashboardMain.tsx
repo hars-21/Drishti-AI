@@ -1,56 +1,33 @@
 import { useState, useEffect } from "react";
-import type { Alert, DashboardStats } from "../../types";
-import { getAlerts, getStats } from "../../services/api";
+import { motion, AnimatePresence } from "framer-motion";
+import { AlertTriangle, Radio, Thermometer, Activity, Shield, Zap } from "lucide-react";
+import type { DashboardStats } from "../../types";
+import { getStats } from "../../services/api";
+import { useSimulation } from "../../context/SimulationContext";
+import { SENSOR_NODES } from "../../types/mapTypes";
 
-interface DashboardProps {
-	onSelectAlert: (alert: Alert) => void;
-}
-
-export function Dashboard({ onSelectAlert }: DashboardProps) {
+export function Dashboard() {
+	const { alerts: simAlerts, detections, anomalies, acknowledgeAlert } = useSimulation();
 	const [stats, setStats] = useState<DashboardStats | null>(null);
-	const [alerts, setAlerts] = useState<Alert[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-
-	const telemetry = {
-		uptime: "99.98%",
-		latency: "24ms",
-		cpu: "18%",
-	};
 
 	useEffect(() => {
 		async function fetchData() {
 			try {
-				const [statsData, alertsData] = await Promise.all([getStats(), getAlerts()]);
+				const statsData = await getStats();
 				setStats(statsData);
-				setAlerts(alertsData);
 			} catch {
-				setError("Connected to Backend (Demo Mode)");
-				setStats({ active_hardware: 74, faulty_hardware: 3, total_alerts: 5 });
-				setAlerts([
-					{
-						id: "AL-1024",
-						tier: "Emergency",
-						coordinates: { lat: 28.61, lng: 77.2 },
-						audio_analysis: "High-Frequency Metallic Impact (Hacksaw matched)",
-						thermal_analysis: "Human Heat Signature Verified (36.8°C)",
-						timestamp: new Date().toISOString(),
-					},
-					{
-						id: "AL-1025",
-						tier: "Advisory",
-						coordinates: { lat: 28.615, lng: 77.205 },
-						audio_analysis: "Rhythmic vibration detected",
-						thermal_analysis: "Object match: Tool Bag (Ambient+5°C)",
-						timestamp: new Date().toISOString(),
-					},
-				]);
+				setStats({
+					active_hardware: SENSOR_NODES.filter((s) => s.status === "active").length,
+					faulty_hardware: SENSOR_NODES.filter((s) => s.status !== "active").length,
+					total_alerts: simAlerts.length || 2,
+				});
 			} finally {
 				setLoading(false);
 			}
 		}
 		fetchData();
-	}, []);
+	}, [simAlerts.length]);
 
 	if (loading) {
 		return (
@@ -60,16 +37,10 @@ export function Dashboard({ onSelectAlert }: DashboardProps) {
 		);
 	}
 
-	const statCards = [
-		{ icon: "📡", value: stats?.active_hardware, label: "Active Nodes", color: "blue" },
-		{ icon: "⚠️", value: stats?.faulty_hardware, label: "Node Failures", color: "red" },
-		{ icon: "⚡", value: stats?.total_alerts, label: "Active Threats", color: "amber" },
-		{ icon: "🚂", value: "SIL-4", label: "Safety Rating", color: "cyan" },
-	];
+	const unackedSimAlerts = simAlerts.filter((a) => !a.acknowledged);
 
 	return (
-		<div className="space-y-8 animate-fade-in">
-			{/* Header */}
+		<div className="space-y-6 animate-fade-in">
 			<div className="flex justify-between items-center">
 				<div>
 					<h1 className="text-2xl font-extrabold text-slate-900">Network Operations Center</h1>
@@ -77,150 +48,235 @@ export function Dashboard({ onSelectAlert }: DashboardProps) {
 						Real-time Triple-Lock Rail Monitoring
 					</p>
 				</div>
-				<div className="flex gap-5 items-center">
-					{error && (
-						<span className="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
-							DEMO MODE ACTIVE
+				<div className="flex gap-4 items-center">
+					{unackedSimAlerts.length > 0 && (
+						<span className="px-3 py-1 text-xs font-bold text-red-600 bg-red-50 rounded-full animate-pulse flex items-center gap-1">
+							<AlertTriangle className="w-3 h-3" />
+							{unackedSimAlerts.length} SIMULATION ALERT{unackedSimAlerts.length > 1 ? "S" : ""}
 						</span>
 					)}
-					{Object.entries(telemetry).map(([key, value]) => (
-						<div key={key} className="flex flex-col items-end">
-							<span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-								{key === "uptime"
-									? "SYSTEM UPTIME"
-									: key === "latency"
-									? "AI LATENCY"
-									: "CORE LOAD"}
-							</span>
-							<span
-								className={`text-lg font-bold ${
-									key === "uptime" ? "text-green-600" : "text-blue-600"
-								}`}
-							>
-								{value}
-							</span>
-						</div>
-					))}
+					<div className="flex items-center gap-2 text-green-600">
+						<Shield className="w-4 h-4" />
+						<span className="text-sm font-bold">SIL-4</span>
+					</div>
 				</div>
 			</div>
 
-			{/* Stats Grid */}
-			<div className="grid grid-cols-4 gap-5">
-				{statCards.map((stat, i) => (
-					<div
-						key={i}
-						className="bg-white border border-slate-200 rounded-xl p-5 flex items-center gap-4 
-                            hover:-translate-y-0.5 transition-transform shadow-sm"
-					>
-						<div className="text-2xl w-12 h-12 bg-slate-50 rounded-lg flex items-center justify-center">
-							{stat.icon}
-						</div>
-						<div className="flex flex-col">
-							<span className="text-2xl font-extrabold text-slate-900">{stat.value}</span>
-							<span className="text-xs font-semibold text-slate-500">{stat.label}</span>
-						</div>
+			<div className="grid grid-cols-4 gap-4">
+				<div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+					<div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+						<Radio className="w-5 h-5 text-blue-600" />
 					</div>
-				))}
+					<div>
+						<div className="text-xl font-extrabold text-slate-900">
+							{stats?.active_hardware || 0}
+						</div>
+						<div className="text-xs font-medium text-slate-500">Active Sensors</div>
+					</div>
+				</div>
+				<div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+					<div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+						<AlertTriangle className="w-5 h-5 text-red-600" />
+					</div>
+					<div>
+						<div className="text-xl font-extrabold text-slate-900">
+							{stats?.faulty_hardware || 0}
+						</div>
+						<div className="text-xs font-medium text-slate-500">Node Failures</div>
+					</div>
+				</div>
+				<div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+					<div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
+						<Zap className="w-5 h-5 text-amber-600" />
+					</div>
+					<div>
+						<div className="text-xl font-extrabold text-slate-900">
+							{anomalies.length || stats?.total_alerts || 0}
+						</div>
+						<div className="text-xs font-medium text-slate-500">Active Anomalies</div>
+					</div>
+				</div>
+				<div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+					<div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+						<Activity className="w-5 h-5 text-purple-600" />
+					</div>
+					<div>
+						<div className="text-xl font-extrabold text-slate-900">{detections.length}</div>
+						<div className="text-xs font-medium text-slate-500">Detections</div>
+					</div>
+				</div>
 			</div>
 
-			{/* Main Grid */}
-			<div className="grid grid-cols-[1.5fr_1fr] gap-8">
-				{/* Schematic Panel */}
-				<div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-					<div className="flex justify-between items-center mb-5">
+			{unackedSimAlerts.length > 0 && (
+				<motion.div
+					initial={{ opacity: 0, y: -10 }}
+					animate={{ opacity: 1, y: 0 }}
+					className="bg-red-50 border border-red-200 rounded-xl p-4"
+				>
+					<div className="flex items-center gap-2 mb-3">
+						<AlertTriangle className="w-5 h-5 text-red-600" />
+						<h3 className="font-bold text-red-900">Simulation Alerts</h3>
+					</div>
+					<div className="grid gap-2">
+						<AnimatePresence>
+							{unackedSimAlerts.slice(0, 5).map((alert) => (
+								<motion.div
+									key={alert.id}
+									initial={{ opacity: 0, x: -20 }}
+									animate={{ opacity: 1, x: 0 }}
+									exit={{ opacity: 0, x: 20 }}
+									className={`p-3 bg-white rounded-lg border-l-4 flex items-center justify-between ${
+										alert.severity === "CRITICAL"
+											? "border-red-500"
+											: alert.severity === "WARNING"
+											? "border-amber-500"
+											: "border-blue-500"
+									}`}
+								>
+									<div className="flex items-center gap-3">
+										{alert.sensorType === "OFC_NODE" ? (
+											<Radio className="w-4 h-4 text-purple-600" />
+										) : (
+											<Thermometer className="w-4 h-4 text-orange-600" />
+										)}
+										<div>
+											<div className="text-sm font-semibold text-slate-800">{alert.message}</div>
+											<div className="text-[10px] text-slate-500">
+												{alert.sensorId} • {new Date(alert.timestamp).toLocaleTimeString()}
+											</div>
+										</div>
+									</div>
+									<button
+										onClick={() => acknowledgeAlert(alert.id)}
+										className="px-3 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded"
+									>
+										ACK
+									</button>
+								</motion.div>
+							))}
+						</AnimatePresence>
+					</div>
+				</motion.div>
+			)}
+
+			<div className="grid grid-cols-[1.5fr_1fr] gap-6">
+				<div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+					<div className="flex justify-between items-center mb-4">
 						<h3 className="text-base font-bold text-slate-900">System Schematic</h3>
-						<span className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-0.5 rounded-full font-mono">
+						<span className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-0.5 rounded-full">
 							LIVE
 						</span>
 					</div>
-					<div className="bg-slate-50 border border-slate-200 rounded-lg p-10 relative">
+					<div className="bg-slate-50 border border-slate-200 rounded-lg p-8 relative">
 						<svg viewBox="0 0 800 200" className="w-full h-auto">
 							<path d="M 0 100 L 800 100" stroke="#e2e8f0" strokeWidth="20" fill="none" />
 							<path
 								d="M 0 100 L 800 100"
-								stroke="#0052cc"
+								stroke="#1e40af"
 								strokeWidth="2"
 								strokeDasharray="10,5"
 								fill="none"
 								opacity="0.3"
 							/>
-							{alerts.map((a, i) => (
-								<g
-									key={a.id}
-									transform={`translate(${100 + i * 200}, 100)`}
-									onClick={() => onSelectAlert(a)}
-									className="cursor-pointer"
-								>
+							{detections.slice(0, 4).map((d, i) => (
+								<g key={d.id} transform={`translate(${100 + i * 180}, 100)`}>
 									<circle
-										r="12"
+										r="14"
 										className={`stroke-white stroke-3 ${
-											a.tier.toLowerCase() === "emergency"
+											d.riskScore > 0.8
 												? "fill-red-500"
-												: a.tier.toLowerCase() === "advisory"
+												: d.riskScore > 0.6
 												? "fill-amber-500"
 												: "fill-blue-500"
 										}`}
 									/>
 									<circle
-										r="20"
+										r="22"
 										className={`fill-none stroke-2 animate-ping ${
-											a.tier.toLowerCase() === "emergency"
+											d.riskScore > 0.8
 												? "stroke-red-500"
-												: a.tier.toLowerCase() === "advisory"
+												: d.riskScore > 0.6
 												? "stroke-amber-500"
 												: "stroke-blue-500"
 										}`}
 									/>
 									<text
-										y="-25"
+										y="-28"
 										textAnchor="middle"
-										className="text-[10px] font-bold fill-slate-500"
+										className="text-[10px] font-bold fill-slate-600"
 									>
-										{a.id}
+										{d.sensorId}
 									</text>
 								</g>
 							))}
+							{anomalies.slice(0, 3).map((a, i) => (
+								<g key={a.id} transform={`translate(${200 + i * 200}, 100)`}>
+									<polygon points="0,-20 8,0 -8,0" className="fill-red-500" />
+								</g>
+							))}
 						</svg>
-						<div className="flex gap-5 justify-center mt-5">
+						<div className="flex gap-5 justify-center mt-4">
 							<span className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-								<i className="w-2 h-2 rounded-full bg-red-500"></i> Emergency
+								<i className="w-2 h-2 rounded-full bg-red-500"></i>Critical
 							</span>
 							<span className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-								<i className="w-2 h-2 rounded-full bg-amber-500"></i> Advisory
+								<i className="w-2 h-2 rounded-full bg-amber-500"></i>Warning
 							</span>
 							<span className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-								<i className="w-2 h-2 rounded-full bg-blue-500"></i> Info
+								<i className="w-2 h-2 rounded-full bg-blue-500"></i>Info
 							</span>
 						</div>
 					</div>
 				</div>
 
-				{/* Alert Feed */}
-				<div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-					<h3 className="text-base font-bold text-slate-900 mb-4">Alert Consensus Log</h3>
-					<div className="space-y-3">
-						{alerts.map((a) => (
-							<div
-								key={a.id}
-								className="p-4 border border-slate-200 rounded-lg cursor-pointer 
-                                    hover:bg-slate-50 hover:border-blue-400 transition-all"
-								onClick={() => onSelectAlert(a)}
-							>
-								<div className="flex justify-between mb-2">
-									<span className="text-xs font-extrabold text-blue-600 font-mono">{a.id}</span>
-									<span className="text-[10px] text-slate-500">
-										{new Date(a.timestamp).toLocaleTimeString()}
-									</span>
-								</div>
-								<p className="text-sm text-slate-700 mb-3">{a.audio_analysis}</p>
-								<div className="flex items-center gap-2.5">
-									<div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
-										<div className="h-full w-[92%] bg-blue-600 rounded-full"></div>
-									</div>
-									<span className="text-[9px] font-bold text-blue-600">Logic Fusion 92%</span>
-								</div>
+				<div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+					<h3 className="text-base font-bold text-slate-900 mb-4">Detection Log</h3>
+					<div className="space-y-2 max-h-75 overflow-y-auto">
+						{detections.length === 0 ? (
+							<div className="text-center py-8 text-sm text-slate-400">
+								No detections - Run a simulation to generate alerts
 							</div>
-						))}
+						) : (
+							detections.map((d) => (
+								<div
+									key={d.id}
+									className="p-3 border border-slate-200 rounded-lg hover:bg-slate-50"
+								>
+									<div className="flex justify-between mb-1">
+										<span className="text-xs font-bold text-blue-600 font-mono">{d.sensorId}</span>
+										<span className="text-[10px] text-slate-500">
+											{new Date(d.timestamp).toLocaleTimeString()}
+										</span>
+									</div>
+									<p className="text-sm text-slate-700 mb-2">{d.analysis}</p>
+									<div className="flex items-center gap-2">
+										<div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+											<div
+												className={`h-full rounded-full ${
+													d.riskScore > 0.8
+														? "bg-red-500"
+														: d.riskScore > 0.6
+														? "bg-amber-500"
+														: "bg-blue-500"
+												}`}
+												style={{ width: `${d.riskScore * 100}%` }}
+											></div>
+										</div>
+										<span
+											className={`text-[10px] font-bold ${
+												d.riskScore > 0.8
+													? "text-red-600"
+													: d.riskScore > 0.6
+													? "text-amber-600"
+													: "text-blue-600"
+											}`}
+										>
+											{(d.riskScore * 100).toFixed(0)}%
+										</span>
+									</div>
+								</div>
+							))
+						)}
 					</div>
 				</div>
 			</div>

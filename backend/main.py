@@ -13,6 +13,8 @@ from pydantic import BaseModel
 from scipy.io import wavfile
 from ultralytics import YOLO
 
+from anomalies import router as anomalies_router
+
 # --- SETUP ---
 app = FastAPI(title="Triple-Lock Rail AI Backend")
 
@@ -22,6 +24,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include anomalies router
+app.include_router(anomalies_router)
 
 # Load AI Model (YOLOv8)
 try:
@@ -65,6 +70,22 @@ hardware_db = [
         "status": "active",
     },
 ]
+
+
+# --- GET ALL HARDWARE ---
+@app.get("/api/v1/hardware")
+def get_all_hardware():
+    """Return all hardware nodes"""
+    return [
+        {
+            "id": hw["id"],
+            "type": hw["type"],
+            "coordinates": {"lat": hw["lat"], "lng": hw["lng"]},
+            "status": hw["status"],
+        }
+        for hw in hardware_db
+    ]
+
 
 # --- SCHEMAS ---
 

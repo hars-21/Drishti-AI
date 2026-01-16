@@ -6,10 +6,10 @@ import type {
 	ActionRequest,
 	ActionLog,
 } from "../types";
+import type { SimulatedAnomaly, SimulationAlert } from "../types/simulationTypes";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 
-// Helper for fetch with error handling
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
 	const response = await fetch(`${API_BASE}${endpoint}`, {
 		...options,
@@ -26,8 +26,6 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
 	return response.json();
 }
 
-// === Alerts & Dashboard ===
-
 export async function getAlerts(): Promise<Alert[]> {
 	return fetchApi<Alert[]>("/alerts");
 }
@@ -36,8 +34,6 @@ export async function getStats(): Promise<DashboardStats> {
 	return fetchApi<DashboardStats>("/stats");
 }
 
-// === Hardware ===
-
 export async function searchHardware(
 	lat: number,
 	lng: number,
@@ -45,8 +41,6 @@ export async function searchHardware(
 ): Promise<Hardware[]> {
 	return fetchApi<Hardware[]>(`/hardware/search?lat=${lat}&lng=${lng}&radius_km=${radiusKm}`);
 }
-
-// === Analysis ===
 
 export async function analyzeThermal(file: File): Promise<AnalysisResult> {
 	const formData = new FormData();
@@ -80,8 +74,6 @@ export async function analyzeAudio(file: File): Promise<AnalysisResult> {
 	return response.json();
 }
 
-// === Control Center Actions ===
-
 export async function notifyControlCenter(
 	request: ActionRequest
 ): Promise<{ status: string; message: string }> {
@@ -94,8 +86,6 @@ export async function notifyControlCenter(
 export async function getActionHistory(): Promise<ActionLog[]> {
 	return fetchApi<ActionLog[]>("/actions/history");
 }
-
-// === Full Sensor Ingestion ===
 
 export async function ingestFullCheck(
 	lat: number,
@@ -118,3 +108,92 @@ export async function ingestFullCheck(
 
 	return response.json();
 }
+
+export async function postAnomaly(anomaly: SimulatedAnomaly): Promise<{ success: boolean; id: string }> {
+	try {
+		const response = await fetchApi<{ success: boolean; id: string }>("/anomalies", {
+			method: "POST",
+			body: JSON.stringify({
+				id: anomaly.id,
+				type: anomaly.type,
+				position: anomaly.position,
+				intensity: anomaly.intensity,
+				inputValues: anomaly.inputValues,
+				timestamp: anomaly.timestamp,
+			}),
+		});
+		return response;
+	} catch {
+		console.log("Backend not available, using localStorage");
+		return { success: true, id: anomaly.id };
+	}
+}
+
+export async function getAnomalies(): Promise<SimulatedAnomaly[]> {
+	try {
+		return await fetchApi<SimulatedAnomaly[]>("/anomalies");
+	} catch {
+		console.log("Backend not available for anomalies");
+		return [];
+	}
+}
+
+export async function deleteAnomaly(id: string): Promise<{ success: boolean }> {
+	try {
+		return await fetchApi<{ success: boolean }>(`/anomalies/${id}`, {
+			method: "DELETE",
+		});
+	} catch {
+		console.log("Backend not available for delete");
+		return { success: false };
+	}
+}
+
+export async function clearAllAnomalies(): Promise<{ success: boolean }> {
+	try {
+		return await fetchApi<{ success: boolean }>("/anomalies", {
+			method: "DELETE",
+		});
+	} catch {
+		return { success: false };
+	}
+}
+
+export async function getSimulationAlerts(): Promise<SimulationAlert[]> {
+	try {
+		return await fetchApi<SimulationAlert[]>("/anomalies/alerts");
+	} catch {
+		return [];
+	}
+}
+
+export async function postSimulationAlert(alert: SimulationAlert): Promise<{ success: boolean }> {
+	try {
+		return await fetchApi<{ success: boolean }>("/anomalies/alerts", {
+			method: "POST",
+			body: JSON.stringify(alert),
+		});
+	} catch {
+		return { success: false };
+	}
+}
+
+export async function acknowledgeSimulationAlert(alertId: string): Promise<{ success: boolean }> {
+	try {
+		return await fetchApi<{ success: boolean }>(`/anomalies/alerts/${alertId}/acknowledge`, {
+			method: "PATCH",
+		});
+	} catch {
+		return { success: false };
+	}
+}
+
+export async function getAllHardware(): Promise<Hardware[]> {
+	try {
+		return await fetchApi<Hardware[]>("/hardware");
+	} catch {
+		console.log("Backend not available for hardware");
+		return [];
+	}
+}
+

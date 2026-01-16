@@ -1,0 +1,104 @@
+/* Leaflet CSS Import */
+@import "leaflet/dist/leaflet.css";
+
+/* Custom Leaflet Overrides for Drishti AI */
+.leaflet-container {
+    font-family: "Inter", "IBM Plex Sans", system-ui, sans-serif;
+    background: #f1f5f9;
+}
+
+/* Custom popup styling */
+.leaflet-popup-content-wrapper {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+}
+
+.leaflet-popup-content {
+    margin: 12px 16px;
+    color: #0f172a;
+}
+
+.leaflet-popup-tip {
+    background: white;
+    border: 1px solid #e2e8f0;
+}
+
+/* Control styling */
+.leaflet-control-zoom {
+    border: none !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.leaflet-control-zoom a {
+    background: white !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
+    font-weight: 600 !important;
+}
+
+.leaflet-control-zoom a:hover {
+    background: #f8fafc !important;
+}
+
+.leaflet-control-attribution {
+    background: rgba(255, 255, 255, 0.85) !important;
+    font-size: 10px !important;
+    padding: 4px 8px !important;
+    border-radius: 4px 0 0 0 !important;
+}
+
+/* Custom marker styling */
+.sensor-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.sensor-marker:hover {
+    transform: scale(1.15);
+}
+
+.sensor-marker.active {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.sensor-marker.faulty {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    animation: pulse-faulty 2s infinite;
+}
+
+.sensor-marker.config_failure {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+@keyframes pulse-faulty {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    }
+}
+
+/* Risk heatmap circle styling */
+.risk-circle {
+    transition: opacity 0.3s ease;
+}
+
+/* Zone polygon styling */
+.zone-polygon {
+    transition: fill-opacity 0.3s ease;
+}
+
+.zone-polygon:hover {
+    fill-opacity: 0.4 !important;
+}
